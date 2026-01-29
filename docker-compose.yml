@@ -1,0 +1,31 @@
+services:
+  db:
+    image: mariadb:10.11
+    container_name: suitecrm_db
+    restart: always
+    ports:
+      - "3306:3306"  # <--- THIS IS NEW: Maps Docker port 3306 to your local machine
+    environment:
+      - MARIADB_ROOT_PASSWORD=password
+      - MARIADB_DATABASE=suitecrm
+      - MARIADB_USER=suitecrm_user
+      - MARIADB_PASSWORD=suitecrm_pass
+    volumes:
+      - db_data:/var/lib/mysql
+
+  suitecrm:
+    build: .
+    container_name: suitecrm_app
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_NAME=suitecrm
+      - DATABASE_USER=suitecrm_user
+      - DATABASE_PASSWORD=suitecrm_pass
+    depends_on:
+      - db
+
+volumes:
+  db_data:
