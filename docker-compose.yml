@@ -1,31 +1,77 @@
 services:
-  db:
+  # 1. MariaDB (SuiteCRM Database)
+  suitecrm_db:
     image: mariadb:10.11
     container_name: suitecrm_db
     restart: always
     ports:
-      - "3306:3306"  # <--- THIS IS NEW: Maps Docker port 3306 to your local machine
+      - "3306:3306"
     environment:
-      - MARIADB_ROOT_PASSWORD=password
-      - MARIADB_DATABASE=suitecrm
-      - MARIADB_USER=suitecrm_user
-      - MARIADB_PASSWORD=suitecrm_pass
+      MARIADB_ROOT_PASSWORD: root_password
+      MARIADB_DATABASE: suitecrm
+      MARIADB_USER: suitecrm_user
+      MARIADB_PASSWORD: suitecrm_pass
     volumes:
       - db_data:/var/lib/mysql
 
-  suitecrm:
-    build: .
+  # 2. PostgreSQL (Analytics)
+  my_postgres:
+    image: postgres:17
+    container_name: my_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  # 3. SuiteCRM App
+  suitecrm_app:
+    build: ./suit_crmdb
     container_name: suitecrm_app
     restart: always
     ports:
       - "8080:80"
-    environment:
-      - DATABASE_HOST=db
-      - DATABASE_NAME=suitecrm
-      - DATABASE_USER=suitecrm_user
-      - DATABASE_PASSWORD=suitecrm_pass
     depends_on:
-      - db
+      - suitecrm_db
+
+  # 4. FastAPI Backend
+  fastapi_backend:
+    build: ./back_fastapi
+    container_name: fastapi_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=suitecrm_db
+      - DB_USER=suitecrm_user
+      - DB_PASSWORD=suitecrm_pass
+      - DB_NAME=suitecrm
+      - DB_PORT=3306
+      - PG_HOST=my_postgres
+      - PG_USER=myuser
+      - PG_PASSWORD=mypassword
+      - PG_NAME=mydb
+      - PG_PORT=5432
+    depends_on:
+      - suitecrm_db
+      - my_postgres
+
+  # 5. Next.js Frontend
+  front_nextjs:
+    build: ./front_nextjs/my-app
+    container_name: front_nextjs
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    depends_on:
+      - fastapi_backend
 
 volumes:
   db_data:
+  pg_data:

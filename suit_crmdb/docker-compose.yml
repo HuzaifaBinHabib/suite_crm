@@ -1,0 +1,44 @@
+services:
+  # 1. MariaDB - Added ports
+  suitecrm_db:
+    image: mariadb:10.11
+    container_name: suitecrm_db
+    restart: always
+    ports:
+      - "3306:3306"  # Allows local FastAPI to connect
+    environment:
+      - MARIADB_ROOT_PASSWORD=root_password
+      - MARIADB_DATABASE=suitecrm
+      - MARIADB_USER=suitecrm_user
+      - MARIADB_PASSWORD=suitecrm_pass
+    volumes:
+      - db_data:/var/lib/mysql
+
+  # 2. PostgreSQL - Added ports
+  my_postgres:
+    image: postgres:17  # 🔥 Pin to version 17
+    container_name: my_postgres
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+      POSTGRES_DB: mydb
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
+  # 3. SuiteCRM App
+  suitecrm_app:
+    build: 
+      context: .
+    container_name: suitecrm_app
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - suitecrm_db
+
+volumes:
+  db_data:
+  pg_data:
