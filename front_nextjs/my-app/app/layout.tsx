@@ -1,56 +1,41 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Link from 'next/link';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "SUITE_CRM CORE",
-  description: "Advanced SuiteCRM & Postgres Sync System",
+  description: "External Contact Management System",
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
-      >
+      <body className={`${inter.className} bg-black text-white antialiased`}>
         {/* TOP NAVIGATION BAR */}
-        <nav className="border-b border-gray-800 bg-[#050505] sticky top-0 z-50">
-          <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-            <div className="font-bold tracking-tighter text-xl">
-              SUITE<span className="text-blue-500">_CRM</span>
-            </div>
+        <nav className="border-b border-gray-900 bg-black sticky top-0 z-50">
+          <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
             
-            <div className="flex gap-8">
-              <Link 
-                href="/" 
-                className="text-[10px] font-bold uppercase tracking-widest hover:text-blue-500 transition-colors"
-              >
+            {/* LOGO: MATCHES SCREENSHOT */}
+            <div className="font-bold text-2xl tracking-tighter italic uppercase">
+              SUITE<span className="text-purple-600">_CRM</span>
+            </div>
+
+            {/* NAV LINKS & ADMIN BUTTON */}
+            <div className="flex items-center gap-10 text-[11px] font-bold uppercase tracking-[0.2em]">
+              <Link href="/" className="hover:text-purple-500 transition-colors">
                 Contacts
               </Link>
-              <Link 
-                href="/users" 
-                className="text-[10px] font-bold uppercase tracking-widest hover:text-blue-500 transition-colors"
-              >
+              <Link href="/users" className="hover:text-purple-500 transition-colors">
                 Users
               </Link>
+              
+              {/* ADMIN SYNC BUTTON: MATCHES RED OUTLINE STYLE */}
               <Link 
                 href="/admin" 
-                className="text-[10px] font-bold uppercase tracking-widest text-red-500 hover:text-red-400 transition-colors border border-red-900/50 px-3 py-1 rounded-sm bg-red-950/20"
+                className="border border-red-900/60 text-red-600 px-5 py-2 rounded-sm bg-red-950/10 hover:bg-red-900/20 transition-all"
               >
                 Admin Sync
               </Link>
@@ -59,7 +44,7 @@ export default function RootLayout({
         </nav>
 
         {/* PAGE CONTENT */}
-        <main>
+        <main className="min-h-screen">
           {children}
         </main>
       </body>

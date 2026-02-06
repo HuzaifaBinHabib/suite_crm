@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   # 1. MariaDB (SuiteCRM Database)
   suitecrm_db:
@@ -13,8 +15,10 @@ services:
       MARIADB_PASSWORD: suitecrm_pass
     volumes:
       - db_data:/var/lib/mysql
+    networks:
+      - suitecrm_net
 
-  # 2. PostgreSQL (Analytics)
+  # 2. PostgreSQL
   my_postgres:
     image: postgres:17
     container_name: my_postgres
@@ -27,18 +31,51 @@ services:
       POSTGRES_DB: mydb
     volumes:
       - pg_data:/var/lib/postgresql/data
+    networks:
+      - suitecrm_net
 
   # 3. SuiteCRM App
   suitecrm_app:
     build: ./suit_crmdb
     container_name: suitecrm_app
     restart: always
+    command: >
+      sh -c "set -e; \
+      if [ -f /var/www/html/public/legacy/Api/V8/Config/services/middlewares.php ]; then \
+        sed -i \"s/'file:\\/\\/%s\\/%s'/'%s\\/%s'/g\" /var/www/html/public/legacy/Api/V8/Config/services/middlewares.php; \
+      fi; \
+      if [ -f /var/www/html/vendor/slim/slim/Slim/Collection.php ]; then \
+        perl -i -pe \"s/^(\\s+)(public function offsetExists)/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+        perl -i -pe \"s/^(\\s+)(public function offsetGet)/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+        perl -i -pe \"s/^(\\s+)(public function offsetSet)/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+        perl -i -pe \"s/^(\\s+)(public function offsetUnset)/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+        perl -i -pe \"s/^(\\s+)(public function count\\(\\))/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+        perl -i -pe \"s/^(\\s+)(public function getIterator\\(\\))/\\$1#\\[\\\\ReturnTypeWillChange\\]\\n\\$1\\$2/\" /var/www/html/vendor/slim/slim/Slim/Collection.php; \
+      fi; \
+      if [ -f /var/www/html/public/legacy/Api/V8/OAuth2/private.key ]; then chmod 600 /var/www/html/public/legacy/Api/V8/OAuth2/private.key; fi; \
+      if [ -f /var/www/html/public/legacy/Api/V8/OAuth2/public.key ]; then chmod 600 /var/www/html/public/legacy/Api/V8/OAuth2/public.key; fi; \
+      apache2-foreground"
     ports:
       - "8080:80"
+    environment:
+      - DATABASE_HOST=suitecrm_db
+      - DATABASE_NAME=suitecrm
+      - DATABASE_USER=suitecrm_user
+      - DATABASE_PASSWORD=suitecrm_pass
+    volumes:
+      - suitecrm_data:/var/www/html
+      - ./php-suitecrm.ini:/usr/local/etc/php/conf.d/99-suitecrm.ini:ro
+      # Mount only the key files so OAuth2/Repository/ (ClientRepository etc.) stays in the image
+      - ./oauth2-keys/private.key:/var/www/html/public/legacy/Api/V8/OAuth2/private.key
+      - ./oauth2-keys/public.key:/var/www/html/public/legacy/Api/V8/OAuth2/public.key
     depends_on:
       - suitecrm_db
+    networks:
+      suitecrm_net:
+        aliases:
+          - suitecrm.local
 
-  # 4. FastAPI Backend
+  # 4. FastAPI backend
   fastapi_backend:
     build: ./back_fastapi
     container_name: fastapi_backend
@@ -57,10 +94,12 @@ services:
       - PG_NAME=mydb
       - PG_PORT=5432
     depends_on:
-      - suitecrm_db
+      - suitecrm_app
       - my_postgres
+    networks:
+      - suitecrm_net
 
-  # 5. Next.js Frontend
+  # 5. Next.js frontend
   front_nextjs:
     build: ./front_nextjs/my-app
     container_name: front_nextjs
@@ -71,7 +110,14 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8000
     depends_on:
       - fastapi_backend
+    networks:
+      - suitecrm_net
 
 volumes:
   db_data:
   pg_data:
+  suitecrm_data:
+
+networks:
+  suitecrm_net:
+    driver: bridge
