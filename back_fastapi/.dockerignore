@@ -1,0 +1,24 @@
+# Git
+.git
+.gitignore
+
+# Python cache and virtual environments
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.env
+
+# Node.js / frontend clutter
+node_modules/
+package.json
+package-lock.json
+
+# IDE settings
+.vscode/
+.idea/
+
+# Docker specific
+.dockerignore

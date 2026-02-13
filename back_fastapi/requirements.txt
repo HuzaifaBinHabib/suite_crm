@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+pydantic
+mysql-connector-python
+psycopg2-binary
+python-dotenv
+requests
